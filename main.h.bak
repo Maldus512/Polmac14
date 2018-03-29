@@ -1,0 +1,105 @@
+/******************************************************************************/
+/*      COSTANTI			                                      */
+/******************************************************************************/
+
+#define _ISR_PSV 	__attribute__((interrupt, auto_psv))
+#define _ISR_NO_PSV 	__attribute__((interrupt, no_auto_psv))
+
+#define MHZ                     1
+// #define MHZ                     2
+// #define MHZ                     4
+// #define MHZ                     8
+
+//#define USE_XT
+//#define USE_T5
+
+#if MHZ==1
+    #define VERSIONE                "v07.1 08/04/2014"
+#elif MHZ==2
+    #define VERSIONE                "v07.2 08/04/2014"
+#elif MHZ==4
+    #define VERSIONE                "v07.4 08/04/2014"
+#elif MHZ==8
+    #define VERSIONE                "v07.8 08/04/2014"
+#else
+    #error Invalid clock frequency;
+#endif
+
+
+
+#define TRUE 			1
+#define FALSE 			0
+
+#define INIT			0				// stato
+#define DISPLAY			1				// stato
+#define CHIUSO			2				// stato
+#define SLEEP			3				// stato
+
+#define NUM_PAGINE		10
+
+#define LINGUA 			0				// parametro utente pag1
+#define IMPULSI 		1				// parametro utente pag1
+#define UNITA			2				// parametro utente pag1
+#define EVIDENZIA               3				// parametro utente pag1
+
+#define T_BACKLIGHT             0				// parametro utente pag2
+#define T_SLEEP			2				// parametro utente pag2
+#define LUMINOSITA		1				// parametro utente pag2
+#define DECIMALI                3				// parametro utente pag2
+
+#define RESET                   0                               // parametro utente pag3
+#define REVERSE_MAIN            1				// parametro utente pag3
+#define REVERSE_SPLASH          2				// parametro utente pag3
+
+#define AUTO_SOLE               0				// parametro utente pag4
+#define AUTO_PILA               1				// parametro utente pag4
+#define SEC_PILA_FOTORES        2				// parametro utente pag4
+#define EN_HLVD                 3				// parametro utente pag4
+
+#define N_MEDIA                 0				// parametro utente pag5
+// #define REVERSE_MAIN            1				// parametro utente pag5
+// #define REVERSE_SPLASH          2				// parametro utente pag5
+#define CLK_TUNE                1				// parametro utente pag5
+
+//#define AB_PILA          	0				// parametro utente pag8
+#define AB_REED			0				// parametro utente pag8
+#define AB_FOTORES		1				// parametro utente pag8
+
+#define NUM_PARAMETRI_1         4				// numero di parametri utente pag1
+#define NUM_PARAMETRI_2         4				// numero di parametri utente pag2
+// #define NUM_PARAMETRI_3         1				// numero di parametri utente pag3
+#define NUM_PARAMETRI_3         3				// numero di parametri utente pag3
+#define NUM_PARAMETRI_4         4                               // numero di parametri utente pag4
+#define NUM_PARAMETRI_5         2                               // numero di parametri utente pag5
+#define NUM_PARAMETRI_8         2                               // numero di parametri utente pag8
+
+#define NUM_LINGUE		8
+
+#define LITRI			0
+#define GALLONI			1
+#define METRICUBI		2
+#define NUM_UNITA		3
+
+#define NUM_EVID                3
+
+#define EE_ADDR_LINGUA          1
+#define EE_ADDR_IMPULSI_LITRO   2
+#define EE_ADDR_UNITA           5
+#define EE_ADDR_SEC_BACKLIGHT   6
+#define EE_ADDR_SEC_SLEEP       8
+#define EE_ADDR_SOGLIA_SOLE     10
+#define EE_ADDR_BACKLED_LEVEL   13
+#define EE_ADDR_SOGLIA_BATTERIA 14
+#define EE_ADDR_SEC_BATT_SOLE   16
+#define EE_ADDR_EN_HLVD         19
+#define EE_ADDR_TEMPA           20
+#define EE_ADDR_TEMPB           22
+#define EE_ADDR_EVID            25
+#define EE_ADDR_MEDIA           27
+#define EE_ADDR_DECIMALI        29
+#define EE_ADDR_REV_MAIN        31
+#define EE_ADDR_REV_SPLASH      33
+#define EE_ADDR_CLK_TUNE        35
+#define EE_ADDR_CHECK           36
+
+void save (void);

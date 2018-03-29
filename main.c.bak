@@ -1,0 +1,1401 @@
+/******************************************************************************/
+/*                                                                            */
+/*      H   H      SSSS     W   W                                             */
+/*      H   H     S         W   W                                             */
+/*      HHHHH      SSS      W   W                                             */
+/*      H   H         S     W W W                                             */
+/*      H   H  *  SSSS   *   W W   *  snc                                     */
+/*                                                                            */
+/*      *********************************                                     */
+/*                                                                            */
+/*  HSW snc - Casalecchio di Reno (BO) ITALY                                  */
+/*  ----------------------------------------                                  */
+/*                                                                            */
+/*  programma:  CONTALITRI                                                    */
+/*                                                                            */
+/*  cliente:                                                                  */
+/*                                                                            */
+/*  ver. 00:    29/02/2012                                                    */
+/*                                                                            */
+/*  ver. att.:  08/04/2014 v07.0                                              */
+/*                                                                            */
+/*  BY:         Fabio BARALDI & Massimo ZANNA                                 */
+/*                                                                            */
+/*                                                                            */
+/*----------------------------------------------------------------------------*/
+/*                                                                            */
+/*  (micro:     MICROCHIP PIC24FJ128GA306	freq 32Mhz                    */
+/*              128K Flash - 0K EERam - 8K Ram                                */
+/*              131072 b     0000 b     8192 b                                */
+/*                                                                            */
+/*                                                                            */
+/******************************************************************************/
+/*                                                                            */
+/*	da fare:                                                              */
+/*                                                                            */
+/******************************************************************************/
+
+/* file main.c */
+
+#include <p24fj128ga306.h>
+#include "DEE Emulation 16-bit\DEE Emulation 16-bit.h"
+#include "display.h"
+#include "peripherals.h"
+#include "lowvoltagesave.h"
+#include "pwm.h"
+#include "timers.h"
+#include "adc.h"
+#include "main.h"
+
+
+
+
+
+/******************************************************************************/
+/*      VARIABILI                                                             */
+/******************************************************************************/
+
+//flussometro
+unsigned long long litritot		= 0		; // ml, max 4Ml
+unsigned long long litriparz            = 0		; // ml, max 4Ml
+unsigned long long flusso               = 0		; // ml/min max 65l/min
+volatile unsigned long long cont        = 0		;
+//volatile unsigned long long oldcont     = 0             ;
+volatile unsigned long long contaimpulsi= 0		;
+volatile unsigned long long parzcont    = 0             ;
+volatile unsigned long long temp        = 0             ;
+volatile unsigned int tempa,tempb                       ;
+
+//parametri utente e valori di default
+unsigned long long impulsiperlitro	= 100           ;
+unsigned long long oldimpulsi           = 100           ;
+float magic                             = 1             ;
+char lingua                             = 1             ;
+char currlingua                         = 1             ;
+char unita                              = 0             ;
+char currunita                          = 0             ;
+char evidenzia                          = 2             ;
+char currevidenzia                      = 2             ;
+unsigned short sec_backlight            = 8             ;
+unsigned short sec_sleep		= 60            ;
+unsigned short soglia_sole		= 100           ;
+unsigned short soglia_batteria          = 330           ;
+unsigned char backled_level		= 2             ;
+unsigned short sec_refresh_batt_sole    = 2             ;
+char en_hlvd                            = 1             ;
+unsigned char decimali                  = 0             ;
+unsigned char reverse_main              = FALSE         ;
+unsigned char reverse_splash            = FALSE         ;
+
+//variabili di stato
+unsigned char currpage			= 0		; // pagina attualmente visualizzata
+unsigned char var			= 0		; // variabile in edit nella pagina corrente
+
+volatile unsigned char stato            = 0		;
+char mode				= FALSE         ; // pulsante in alto a sinistra
+char set				= FALSE         ; // pulsante in basso a sinistra
+char up					= FALSE         ; // pulsante in alto a destra
+char down				= FALSE         ; // pulsante in basso a destra
+char chiuso				= TRUE          ; // coperchio
+char oldmode, oldset, oldup, olddown, oldchiuso         ; // boolean
+unsigned int sole			= 0		; // livello da ADC
+unsigned int pila			= 0		; // livello da ADC
+//unsigned int batteria			= 0		; // livello da ADC
+volatile char refresh_batt		= TRUE          ; // boolean flag
+unsigned int incremento                 = 1             ;
+unsigned int aggiungi                   = 1             ;
+volatile unsigned long long secondi     = 0             ;
+volatile unsigned long long secondi_set = 0             ; // per contare i 3 secondi per azzerare litri tot
+unsigned char retro_flag                = FALSE         ;
+unsigned char flag_tecnico              = FALSE         ;
+
+//variabili LCD
+unsigned char pagina0[8][16]                            ;
+unsigned char pagina1[8][16]                            ;
+unsigned char pagina2[8][16]                            ;
+unsigned char pagina3[8][16]                            ;
+unsigned char pagina4[8][16]                            ;
+unsigned char pagina5[8][16]                            ;
+unsigned char pagina6[8][16]                            ;
+unsigned char pagina7[8][16]                            ;
+unsigned char pagina8[8][16]                            ;
+unsigned char pagina9[8][16]                            ;
+unsigned char display_reverse           = 0		; // display in reverse (se 1), 1 bit per riga
+volatile char refresh_LCD		= TRUE          ; // boolean flag
+unsigned char LCD_changed		= 0		; // 1 bit per riga
+volatile unsigned char refresh_cont     = 0             ;
+volatile unsigned char gotosleep	= 0             ;
+extern volatile int contaT2                             ;
+extern char oldlowbatt                                  ;
+extern unsigned char n_media_flusso;
+int i;
+unsigned char contareset=0;
+int resetpass=0;
+short tune =0;
+extern unsigned char target_led_level;
+
+
+_CONFIG4( DSWDTPS_DSWDTPS1F &  // Deep Sleep Watchdog Timer Postscale Select bits (1:68719476736 (25.7 Days))
+    DSWDTOSC_LPRC &      // DSWDT Reference Clock Select (DSWDT uses LPRC as reference clock)
+    DSBOREN_OFF &        //Deep Sleep BOR Enable bit (DSBOR Enabled)
+    DSWDTEN_OFF &        //Deep Sleep Watchdog Timer Enable (DSWDT Enabled)
+    DSSWEN_OFF           //DSEN Bit Enable (Deep Sleep is controlled by the register bit DSEN)
+    //VBZPOR_OFF
+);
+_CONFIG3(
+    WPFP_WPFP127 &       // Write Protection Flash Page Segment Boundary (Page 127 (0x1FC00))
+    VBTBOR_OFF &         // VBAT BOR enable bit (VBAT BOR enabled)
+    SOSCSEL_ON &         // SOSC Selection bits (SOSC circuit selected)
+    WDTWIN_PS25_0 &      // Watch Dog Timer Window Width (Watch Dog Timer Window Width is 25 percent)
+    BOREN_OFF &          // Brown-out Reset Enable (Brown-out Reset Enable)
+    WPDIS_WPDIS &        // Segment Write Protection Disable (Disabled)
+    WPCFG_WPCFGDIS &     // Write Protect Configuration Page Select (Disabled)
+    WPEND_WPENDMEM       // Segment Write Protection End Page Select (Write Protect from WPFP to the last page of memory)
+);
+_CONFIG2(
+#ifdef USE_XT
+    POSCMD_XT &
+#else
+    POSCMD_NONE &        // Primary Oscillator Select (Primary Oscillator Disabled)        
+#endif
+    IOL1WAY_ON &         // IOLOCK One-Way Set Enable bit (Once set, the IOLOCK bit cannot be cleared)
+    OSCIOFCN_OFF &       // OSCO Pin Configuration (OSCO/CLKO/RC15 functions as CLKO (FOSC/2))
+    FCKSM_CSDCMD &       // Clock Switching and Fail-Safe Clock Monitor Configuration bits (Clock switching and Fail-Safe Clock Monitor are disabled)
+#ifdef USE_XT
+    FNOSC_PRI &
+#else
+    FNOSC_FRCDIV &       // Initial Oscillator Select (Fast RC Oscillator with Postscaler (FRCDIV))        
+#endif
+    ALTVREF_DLT_AV_DLT_CV &// Alternate VREF/CVREF Pins Selection bit (Voltage reference input, ADC =RA9/RA10 Comparator =RA9,RA10)
+    IESO_OFF &             // Internal External Switchover (Enabled)
+    BOREN1_DIS          //************
+);
+_CONFIG1(
+    WDTPS_PS32768 &      // Watchdog Timer Postscaler Select (1:32,768)
+    FWPSA_PR128 &        // WDT Prescaler Ratio Select (1:128)
+    FWDTEN_WDT_ACT &     // Watchdog Timer Enable (WDT enabled only while device active and disabled in Sleep)
+    WINDIS_OFF &         // Windowed WDT Disable (Standard Watchdog Timer)
+    ICS_PGx3 &           // Emulator Pin Placement Select bits (Emulator functions are shared with PGEC3/PGED3)
+    LPCFG_ON &           // Low power regulator control (Enabled)
+    GWRP_OFF &           // General Segment Write Protect (Disabled)
+    GCP_OFF &            // General Segment Code Protect (Code protection is disabled)
+    JTAGEN_OFF           // JTAG Port Enable (Disabled)
+);
+
+
+
+
+
+/******************************************************************************/
+/***    FUNZIONE MAIN    ******************************************************/
+/******************************************************************************/
+
+int main (void)
+{
+	
+/******************************************************************************/
+/*      INIT                                                                  */
+/******************************************************************************/
+
+    /*** INIT HARDWARE ***/
+
+#if MHZ==1
+    CLKDIVbits.RCDIV = 3 ;
+#elif MHZ==2
+    CLKDIVbits.RCDIV = 2 ;
+#elif MHZ==4
+    CLKDIVbits.RCDIV = 1 ;
+#elif MHZ==8
+    CLKDIVbits.RCDIV = 0 ;
+#else
+    #error Invalid clock frequency;
+#endif
+    ClrWdt();
+    _RETEN=1;
+    
+    initPeripherals();
+    initPorts();
+
+    //init eeprom e caricamento parametri
+
+    DataEEInit();
+    dataEEFlags.val = 0;
+    if (DataEERead(EE_ADDR_CHECK)==12345)
+    {
+        //recuperare i parametri utente da EEPROM
+        lingua              =DataEERead(EE_ADDR_LINGUA);//8 bit (indirizzo dispari)
+        currlingua=lingua;
+        impulsiperlitro     =DataEERead(EE_ADDR_IMPULSI_LITRO);
+        unita               =DataEERead(EE_ADDR_UNITA);//8 bit (indirizzo dispari)
+        currunita=unita;
+        sec_backlight       =DataEERead(EE_ADDR_SEC_BACKLIGHT);
+        sec_sleep           =DataEERead(EE_ADDR_SEC_SLEEP);
+        soglia_sole         =DataEERead(EE_ADDR_SOGLIA_SOLE);
+        backled_level       =DataEERead(EE_ADDR_BACKLED_LEVEL);
+        soglia_batteria     =DataEERead(EE_ADDR_SOGLIA_BATTERIA);
+        sec_refresh_batt_sole=DataEERead(EE_ADDR_SEC_BATT_SOLE);
+        en_hlvd             =DataEERead(EE_ADDR_EN_HLVD);
+        if (en_hlvd){
+            tempa               =DataEERead(EE_ADDR_TEMPA);//litri tot
+            tempb               =DataEERead(EE_ADDR_TEMPB);
+            cont                =tempa*65536+tempb;
+        }
+        evidenzia           = DataEERead(EE_ADDR_EVID);
+        n_media_flusso      = DataEERead(EE_ADDR_MEDIA);
+        decimali      = DataEERead(EE_ADDR_DECIMALI);
+        reverse_main      = DataEERead(EE_ADDR_REV_MAIN);
+        reverse_splash      = DataEERead(EE_ADDR_REV_SPLASH);
+        tune                = DataEERead(EE_ADDR_CLK_TUNE);
+    }
+    else
+    {
+        //è il primo avvio: salvo i valori di default sulla eeprom
+        DataEEWrite(lingua,EE_ADDR_LINGUA);
+        DataEEWrite(impulsiperlitro,EE_ADDR_IMPULSI_LITRO);
+        DataEEWrite(unita,EE_ADDR_UNITA);
+        DataEEWrite(sec_backlight,EE_ADDR_SEC_BACKLIGHT);
+        DataEEWrite(sec_sleep,EE_ADDR_SEC_SLEEP);
+        DataEEWrite(soglia_sole,EE_ADDR_SOGLIA_SOLE);
+        DataEEWrite(backled_level,EE_ADDR_BACKLED_LEVEL);
+        DataEEWrite(soglia_batteria,EE_ADDR_SOGLIA_BATTERIA);
+        DataEEWrite(sec_refresh_batt_sole,EE_ADDR_SEC_BATT_SOLE);
+        DataEEWrite(en_hlvd,EE_ADDR_EN_HLVD);
+        DataEEWrite(0,EE_ADDR_TEMPA);
+        DataEEWrite(0,EE_ADDR_TEMPB);
+        DataEEWrite(evidenzia,EE_ADDR_EVID);
+        DataEEWrite(n_media_flusso,EE_ADDR_MEDIA);
+        DataEEWrite(decimali,EE_ADDR_DECIMALI);
+        DataEEWrite(reverse_main,EE_ADDR_REV_MAIN);
+        DataEEWrite(reverse_splash,EE_ADDR_REV_SPLASH);
+        DataEEWrite(tune,EE_ADDR_CLK_TUNE);
+        DataEEWrite(12345,EE_ADDR_CHECK);
+    }
+    magic = 240000.0/(float)impulsiperlitro;
+    //init periferiche
+    if(tune>=0)
+        OSCTUNbits.TUN = tune;
+    else
+        OSCTUNbits.TUN = tune + 64;
+
+    initTimers();
+    initPWM();
+    initIC1();
+    initADC(0x0003); // 00C3 selezionare i pin analogici
+    initHLVD();
+    init_LCD();
+    disabilitaIntPulsanti();
+
+    initPagine ();
+    initCont();
+    T1CONbits.TON=1;
+    T2CONbits.TON=1;
+    T5CONbits.TON=1;
+    _EXTR=0;//azzero i flag
+    _BOR=0;
+    _POR=0;
+    _VDDPOR=0;
+    _VDDBOR=0;
+    _VBPOR=0;
+    _VBAT=0;
+
+    PWMledLCD_ON();
+        /* SPLASH */
+    paint_splash();
+    for(i=0;i<10;i++){
+        wait200ms();
+        wait200ms();
+        retro_level();
+    }
+    wait200ms();
+    wait200ms();
+    wait200ms();
+    wait200ms();
+    wait200ms();
+
+    T3CONbits.TON=1;
+
+
+
+
+
+/******************************************************************************/
+/*      MAIN LOOP	                                                      */
+/******************************************************************************/
+
+    while(TRUE)
+    {
+        ClrWdt();
+
+        if (stato==SLEEP)
+        { // mi sto svegliando
+            stato = DISPLAY;
+            disabilitaIntPulsanti();
+            chiuso=TRUE;
+            T2CONbits.TON=1;
+        }
+
+        if (gotosleep==TRUE && currpage<4)
+        { // mi sto addormentando
+            T2CONbits.TON=0;
+            gotosleep=FALSE;
+            //SPEGNI IL DISPLAY
+            LCDshutdown();
+            //spegni la retroilluminazione
+            PWMledLCD_OFF_quick();
+            abifotores=0;
+            abicoperchio=0;
+
+            tempa = cont / 65536;
+            tempb = cont % 65536;
+            //if (tempa!=DataEERead(EE_ADDR_TEMPA)) lo fa già
+                DataEEWrite(tempa, EE_ADDR_TEMPA);
+            //if (tempb!=DataEERead(EE_ADDR_TEMPB))
+                DataEEWrite(tempb, EE_ADDR_TEMPB);
+
+            abilitaIntPulsanti();
+            stato = SLEEP ;
+            Sleep();
+        }
+
+        oldchiuso=chiuso;
+        if (currpage != 8) {//test uscite
+        abicoperchio = 1;
+        wait2ms(); //1,6ms
+        chiuso=coperchio;
+        wait2ms(); //1,6ms
+        abicoperchio = 0;
+        }
+        if (chiuso && currpage!=7){//test ingressi
+            if (!oldchiuso)
+            {
+                //disabilito il refresh di display, batt e fotores
+                //T2CONbits.TON=0;
+                //SPEGNI IL DISPLAY
+                LCDshutdown();
+                //spegni la retroilluminazione
+                PWMledLCD_OFF_quick();
+            }
+        }
+        else
+        {
+            //leggo i pulsanti
+            oldup	= up		;
+            olddown	= down		;
+            oldmode	= mode		;
+            oldset	= set		;
+            up		= !upbtn	;//attivi bassi
+            down	= !downbtn	;
+            mode	= !modebtn	;
+            set		= !setbtn	;
+
+            if (refresh_batt && !chiuso)
+            {
+                //abipila         = 1                     ;
+                wait2ms(); //1,6ms
+                pila            = readADC(batterysense)	;
+                wait2ms(); //1,6ms
+                //abipila         = 0                     ;
+                if (currpage != 8) {//test uscite
+                abifotores      = 1			;
+                wait2ms(); //1,6ms
+                sole            = readADC(fotores)      ;
+                wait2ms(); //1,6ms
+                abifotores      = 0			;
+                }
+                //batteria        = readADC(carbattery)   ;
+                refresh_batt    = FALSE                 ;
+                if ((pila < soglia_batteria) && (backled_level>3)) {
+                    backled_level=3;
+                    //PWMledLCD_ON();
+                }
+                if (sole>soglia_sole)
+//                    PWMledLCD_ON();
+//                else
+                    target_led_level =0;
+            }
+
+            if (oldchiuso && currpage!=7)//test ingressi
+            {
+                //ACCENDI IL DISPLAY
+                stato = DISPLAY;
+                disabilitaIntPulsanti();
+                T2CONbits.TON=1;
+                init_LCD();
+                currpage = 0;
+                var = 0;
+                if (reverse_main)
+                    display_reverse = 56;
+                else
+                    display_reverse=0;
+                if (sole<soglia_sole)
+                    PWMledLCD_ON();
+                else
+                    target_led_level =0;
+                paint_splash();
+                for(i=0;i<5;i++){
+                    wait200ms();
+                    wait200ms();
+                    retro_level();
+                }
+                refresh_values_p0();
+                refresh_display();
+                //abilito il refresh di display, batt e fotores
+                //T2CONbits.TON=1;
+                //accendi retroilluminazione se fotores<soglia
+                if (currpage != 8) {//test uscite
+                abifotores = 1 ;
+                wait2ms(); //1,6ms
+                sole = readADC(fotores) ;
+                wait2ms(); //1,6ms
+                abifotores = 0 ;
+                }
+            }
+
+            if (mode || set || up || down)
+            {
+                azzera_sleep_func();
+                if (sole<soglia_sole)
+                    PWMledLCD_ON();
+                else
+                    target_led_level =0;
+            }
+
+            switch (currpage)
+            {
+                case 0://pagina principale
+                    if (secondi_set>4)
+                        contareset=0;
+                    if (((up && !oldup) || (down && !olddown)) ||
+                        ((mode && !oldmode) || (set && !oldset)))
+                        secondi_set = 0;
+                    if (up && down){
+                        if (secondi_set>2)
+                            flag_tecnico = TRUE;
+                        else
+                            flag_tecnico=FALSE;
+                    }
+                    else if (mode && set)
+                    {
+                        if ((secondi_set>2) && flag_tecnico){
+                            //cambio pagina
+                            currpage = 3;
+                            var = 0;
+                            display_reverse = 1;
+                            refresh_display();
+                            wait50ms();
+                        }
+                    }
+                    else if (mode && !oldmode) {
+                        //cambio pagina
+                        currpage = (currpage + 1) % NUM_PAGINE;
+                        var = 0;
+                        display_reverse = 1;
+                        refresh_display();
+                        flag_tecnico=FALSE;
+                        oldimpulsi=impulsiperlitro;
+                        wait50ms();
+                    }
+                    else if (set && !oldset){
+                        secondi_set=0;
+                        contareset++;
+                        if(contareset>2){
+                            //azzero il parziale
+                            parzcont=0;
+                            LCD_changed = 0xB4;	//righe 2,4, 5 e 7
+                        }
+                        wait50ms();
+                    }
+                    else
+                        LCD_changed = 0xB4;	//righe 2,4, 5 e 7
+                    break;
+
+                // ########################################################## //
+                case 1://parametri utente 1/2
+                    if (mode && !oldmode) {
+                        //cambio pagina
+                        if (currlingua!=lingua){
+                            DataEEWrite(lingua,EE_ADDR_LINGUA);
+                            initPagine();
+                            if (pila < soglia_batteria)
+                                oldlowbatt=FALSE;
+                            else
+                                oldlowbatt=TRUE;
+                            currlingua=lingua;
+                        }
+                        DataEEWrite(impulsiperlitro,EE_ADDR_IMPULSI_LITRO);
+                        magic = 240000.0/(float)impulsiperlitro;
+                        cont= (unsigned long long)((float)cont*(float)impulsiperlitro/(float)oldimpulsi);
+                        parzcont= (unsigned long long)((float)parzcont*(float)impulsiperlitro/(float)oldimpulsi);
+                        oldimpulsi=impulsiperlitro;
+                        if(currunita!=unita){
+                            DataEEWrite(unita,EE_ADDR_UNITA);
+                            initPagine();
+                            currunita=unita;
+                        }
+                        if (currevidenzia!=evidenzia){
+                            DataEEWrite(evidenzia,EE_ADDR_EVID);
+                            initPagine();
+                            currevidenzia=evidenzia;
+                        }
+                        currpage = (currpage + 1) % NUM_PAGINE;
+                        var=0;
+                        display_reverse = 1;
+                        refresh_display();
+                        wait50ms();
+                    }
+                    else if (set && !oldset) {
+                        //ciclo tra le variabili
+                        //salvo in EEPROM
+                        switch (var) {
+                            case LINGUA:
+                                if (currlingua!=lingua){
+                                    DataEEWrite(lingua,EE_ADDR_LINGUA);
+                                    initPagine();
+                                    if (pila < soglia_batteria)
+                                        oldlowbatt=FALSE;
+                                    else
+                                        oldlowbatt=TRUE;
+
+                                    currlingua=lingua;
+                                }
+                                break;
+                            case IMPULSI:
+                                DataEEWrite(impulsiperlitro,EE_ADDR_IMPULSI_LITRO);
+                                magic = 240000.0/(float)impulsiperlitro;
+                                cont= (unsigned long long)((float)cont*(float)impulsiperlitro/(float)oldimpulsi);
+                                parzcont= (unsigned long long)((float)parzcont*(float)impulsiperlitro/(float)oldimpulsi);
+                                oldimpulsi=impulsiperlitro;
+                                break;
+                            case UNITA:
+                                if(currunita!=unita){
+                                    DataEEWrite(unita,EE_ADDR_UNITA);
+                                    initPagine();
+                                    LCD_changed=8;
+                                    refresh_changed();
+                                    currunita=unita;
+                                }
+                                break;
+                            case EVIDENZIA:
+                                if(currevidenzia!=evidenzia){
+                                    DataEEWrite(evidenzia,EE_ADDR_EVID);
+                                    initPagine();
+                                    currevidenzia=evidenzia;
+                                }
+                                break;
+                        }//switch
+                        LCD_changed = (1 << (var << 1));//mettere 1 al posto di 2 se si parte dalla prima riga
+                        var = (var + 1) % NUM_PARAMETRI_1;
+                        //evidenzio la variabile in edit nel display
+                        display_reverse = (1 << (var << 1));
+                        LCD_changed = LCD_changed | (1 << (var << 1));
+                        if(var==IMPULSI)
+                            refresh_display();
+                        wait50ms();
+                    }
+                    else if (up && !oldup){
+                        incremento=1;
+                        switch (var){
+                            case LINGUA:
+                                lingua = (lingua + 1) % NUM_LINGUE;
+                                break;
+                            case IMPULSI:
+                                if (impulsiperlitro<65535) impulsiperlitro++;
+                                wait200ms();
+                                break;
+                            case UNITA:
+                                unita = (unita + 1) % NUM_UNITA;
+                                break;
+                            case EVIDENZIA:
+                                evidenzia=(evidenzia+1) % NUM_EVID;
+                                break;
+                        }//switch
+                        refresh_values_p1();
+                        LCD_changed = (2 << (var << 1));//mettere 2 al posto di 4 se si parte dalla prima riga
+                        wait50ms();
+                    }//else if
+                    else if (up && oldup){
+                        incremento++;
+                        if (incremento<10)
+                            aggiungi=1;
+                        else
+//                      if(incremento<20)
+                            aggiungi=10;
+//                      else
+//                          if(incremento<30)
+//                              aggiungi=100;
+//                          else
+//                              aggiungi=1000;
+                        switch (var){
+                            case IMPULSI:
+                                if (impulsiperlitro<(65535-aggiungi))
+                                    impulsiperlitro+=aggiungi;
+                                else
+                                    impulsiperlitro=65535;
+                                break;
+                        }//switch
+                        refresh_values_p1();
+                        LCD_changed = (2 << (var << 1));//mettere 2 al posto di 4 se si parte dalla prima riga
+                        wait200ms();
+                        wait50ms();
+                    }//else if
+                    else if (down && !olddown){
+                        incremento=1;
+                        switch (var){
+                            case LINGUA:
+                                if (lingua>0)
+                                    lingua = (lingua - 1) % NUM_LINGUE;
+                                else
+                                    lingua=NUM_LINGUE-1;
+                                break;
+                            case IMPULSI:
+                                if (impulsiperlitro>1) impulsiperlitro--;
+                                wait200ms();
+                                break;
+                            case UNITA:
+                                if (unita>0)
+                                    unita = (unita - 1) % NUM_UNITA;
+                                else
+                                    unita=NUM_UNITA-1;
+                                break;
+                            case EVIDENZIA:
+                                if (evidenzia>0)
+                                    evidenzia = (evidenzia - 1) % NUM_EVID;
+                                else
+                                    evidenzia=NUM_EVID-1;
+                                break;
+                        }//switch
+                        refresh_values_p1();
+                        LCD_changed = (2 << (var << 1));//mettere 2 al posto di 4 se si parte dalla prima riga
+                        wait50ms();
+                    }//else if
+                    else if (down && olddown){
+                        incremento++;
+                        if (incremento<10)
+                            aggiungi=1;
+                        else
+                            if(incremento<20)
+                                aggiungi=10;
+                            else
+                                if(incremento<30)
+                                    aggiungi=100;
+                                else
+                                    aggiungi=1000;
+                        switch (var){
+                            case IMPULSI:
+                                if (impulsiperlitro>aggiungi+1)
+                                    impulsiperlitro-=aggiungi;
+                                else
+                                    impulsiperlitro=1;
+                                break;
+                            }//switch
+                        refresh_values_p1();
+                        LCD_changed = (2 << (var << 1));//mettere 2 al posto di 4 se si parte dalla prima riga
+                        wait200ms();
+                        wait50ms();
+                    }//else if
+                    break;
+
+                // ########################################################## //
+                case 2://parametri utente 2/2
+                    if (mode && !oldmode) {
+                        //cambio pagina
+                        DataEEWrite(sec_backlight,EE_ADDR_SEC_BACKLIGHT);
+                        azzera_backlight_func();
+                        DataEEWrite(sec_sleep,EE_ADDR_SEC_SLEEP);
+                        azzera_sleep_func();
+                        DataEEWrite(backled_level,EE_ADDR_BACKLED_LEVEL);
+                        DataEEWrite(decimali,EE_ADDR_DECIMALI);
+                        var = 0;
+                        currpage = 0;
+                        if (reverse_main)
+                            display_reverse = 56;
+                        else
+                            display_reverse=0;
+                        refresh_display();
+
+                        wait50ms();
+                    }
+                    else if (set && !oldset) {
+                        //ciclo tra le variabili
+                        //salvo in EEPROM
+                        switch (var) {
+                            case T_BACKLIGHT:
+                                DataEEWrite(sec_backlight,EE_ADDR_SEC_BACKLIGHT);
+                                azzera_backlight_func();
+                                break;
+                            case T_SLEEP:
+                                DataEEWrite(sec_sleep,EE_ADDR_SEC_SLEEP);
+                                azzera_sleep_func();
+                                break;
+                            case LUMINOSITA:
+                                DataEEWrite(backled_level,EE_ADDR_BACKLED_LEVEL);
+                                break;
+                            case DECIMALI:
+                                DataEEWrite(decimali,EE_ADDR_DECIMALI);
+                                break;
+                        }//switch
+                        LCD_changed = (1 << (var << 1));//mettere 1 al posto di 2 se si parte dalla prima riga
+                        var = (var + 1) % NUM_PARAMETRI_2;
+                        //evidenzio la variabile in edit nel display
+                        display_reverse = (1 << (var << 1));
+                        LCD_changed = LCD_changed | (1 << (var << 1));
+                        wait50ms();
+                    }
+                    else if (up && !oldup){
+                        incremento=1;
+                        switch (var){
+                            case T_BACKLIGHT:
+                                if (sec_backlight<600) sec_backlight++;
+                                wait200ms();
+                                break;
+                            case T_SLEEP:
+                                if (sec_sleep<600) sec_sleep++;
+                                wait200ms();
+                                break;
+                            case LUMINOSITA:
+                                if (backled_level<10)
+                                {
+                                    backled_level++;
+                                    PWMledLCD_ON();
+                                    wait200ms();
+                                }
+                                break;
+                            case DECIMALI:
+                                if(decimali<2)
+                                    decimali++;
+                                break;
+                        }//switch
+                        refresh_values_p2();
+                        LCD_changed = (2 << (var << 1));//mettere 2 al posto di 4 se si parte dalla prima riga
+                        wait50ms();
+                    }//else if
+                    else if (up && oldup){
+                        incremento++;
+                        if (incremento<10)
+                            aggiungi=1;
+                        else
+                            if(incremento<20)
+                                aggiungi=10;
+                            else
+                                if(incremento<30)
+                                    aggiungi=100;
+                                else
+                                    aggiungi=1000;
+                        switch (var){
+                            case T_BACKLIGHT:
+                                if (sec_backlight<(600-aggiungi))
+                                    sec_backlight+=aggiungi;
+                                else
+                                    sec_backlight=600;
+                                break;
+                            case T_SLEEP:
+                                if (sec_sleep<(600-aggiungi))
+                                    sec_sleep+=aggiungi;
+                                else
+                                    sec_sleep=600;
+                                break;
+                            }//switch
+                        refresh_values_p2();
+                        LCD_changed = (2 << (var << 1));//mettere 2 al posto di 4 se si parte dalla prima riga
+                        wait200ms();
+                        wait50ms();
+                        }//else if
+                    else if (down && !olddown){
+                        incremento=1;
+                        switch (var){
+                            case T_BACKLIGHT:
+                                if (sec_backlight>0) sec_backlight--;
+                                wait200ms();
+                                break;
+                            case T_SLEEP:
+                                if (sec_sleep>5) sec_sleep--;
+                                wait200ms();
+                                break;
+                            case LUMINOSITA:
+                                if (backled_level>0)
+                                {
+                                    backled_level--;
+                                    PWMledLCD_ON();
+                                }
+                                break;
+                             case DECIMALI:
+                                if (decimali > 0)
+                                    decimali--;
+                                break;
+                        }//switch
+                        refresh_values_p2();
+                        LCD_changed = (2 << (var << 1));//mettere 2 al posto di 4 se si parte dalla prima riga
+                        wait50ms();
+                    }//else if
+                    else if (down && olddown){
+                        incremento++;
+                        if (incremento<10)
+                            aggiungi=1;
+                        else
+                            if(incremento<20)
+                                aggiungi=10;
+                            else
+                                if(incremento<30)
+                                    aggiungi=100;
+                                else
+                                    aggiungi=1000;
+                        switch (var){
+                            case T_BACKLIGHT:
+                                if (sec_backlight>aggiungi)
+                                    sec_backlight-=aggiungi;
+                                else
+                                    sec_backlight=0;
+                                break;
+                            case T_SLEEP:
+                                if (sec_sleep>aggiungi+5)
+                                    sec_sleep-=aggiungi;
+                                else
+                                    sec_sleep=5;
+                                break;
+                        }//switch
+                        refresh_values_p2();
+                        LCD_changed = (2 << (var << 1));//mettere 2 al posto di 4 se si parte dalla prima riga
+                        wait200ms();
+                        wait50ms();
+                    }//else if
+                    break;
+
+                // ########################################################## //
+                case 3://parametri tecnico
+                    if (mode && !oldmode) {
+                        DataEEWrite(reverse_main,EE_ADDR_REV_MAIN);
+                        DataEEWrite(reverse_splash,EE_ADDR_REV_SPLASH);
+                        //cambio pagina
+                        currpage = 0;
+                        if (reverse_main)
+                            display_reverse = 56;
+                        else
+                            display_reverse=0;
+                        var=0;
+                        refresh_display();
+                        wait50ms();
+                    }
+                    else if (set && !oldset) {
+                        switch(var)
+                        {
+                            case RESET:
+                                if((resetpass==12345) || (resetpass==71)){
+                                    TMR3=0;
+                                    cont=0;
+                                    //parzcont=0;
+                                    contaimpulsi=0;
+                                    resetpass=0;
+                                    LCD_changed = 0x02;
+                                    refresh_values_p3();
+                                }
+                                else if((resetpass==22222) || (resetpass==69)){
+                                    resetpass=0;
+                                    refresh_values_p3();
+                                    currpage = 4;
+                                    display_reverse=1;
+                                    refresh_display();
+                                }
+                                break;
+                        }//switch
+                        //if(currpage!=4){
+                            LCD_changed = (1 << (var << 1));//mettere 1 al posto di 2 se si parte dalla prima riga
+                            var = (var + 1) % NUM_PARAMETRI_3;
+                            // evidenzio la variabile in edit nel display
+                            display_reverse = (1 << (var << 1));
+                            LCD_changed = LCD_changed | (1 << (var << 1));
+                            LCD_changed = LCD_changed | 0x02;
+                        //}
+                        wait50ms();
+                    }//elseif
+                    else if (up && !oldup){
+                        incremento=1;
+                        switch (var){
+                            case RESET:
+                                if(resetpass<29999) resetpass++;
+                                break;
+                            case REVERSE_MAIN:
+                                reverse_main=TRUE;
+                                break;
+                            case REVERSE_SPLASH:
+                                reverse_splash=TRUE;
+                                break;
+                        }//switch
+                        refresh_values_p3();
+                        LCD_changed = (2 << (var << 1));
+                        wait200ms();
+                        wait50ms();
+                    }//else if
+                    else if (down && !olddown) {
+                        incremento=1;
+                        switch (var) {
+                            case RESET:
+                                if (resetpass > 0) resetpass--;
+                                break;
+                            case REVERSE_MAIN:
+                                reverse_main=FALSE;
+                                break;
+                            case REVERSE_SPLASH:
+                                reverse_splash=FALSE;
+                                break;
+                        }//switch
+                        refresh_values_p3();
+                        LCD_changed = (2 << (var << 1));
+                        wait200ms();
+                        wait50ms();
+                    }//else if
+                    else if (up & oldup){
+                        incremento++;
+                        if (incremento<10)
+                            aggiungi=1;
+                        else
+                            if(incremento<20)
+                                aggiungi=10;
+                            else
+                                if(incremento<30)
+                                    aggiungi=100;
+                                else
+                                    aggiungi=1000;
+                        switch(var)
+                        {
+                            case RESET:
+                                if(resetpass<29999-aggiungi)
+                                    resetpass+=aggiungi;
+                                else
+                                    resetpass=29999;
+                                break;
+                        }
+                        LCD_changed = (2 << (var << 1));
+                        refresh_values_p3();
+                        wait200ms();
+                        wait50ms();
+                    }//else if
+                    else if (down && olddown) {
+                        incremento++;
+                        if (incremento < 10)
+                            aggiungi = 1;
+                        else
+                            if (incremento < 20)
+                            aggiungi = 10;
+                        else
+                            if (incremento < 30)
+                            aggiungi = 100;
+                        else
+                            aggiungi = 1000;
+                        switch(var)
+                        {
+                            case RESET:
+                                if (resetpass > aggiungi)
+                                    resetpass -= aggiungi;
+                                else
+                                    resetpass = 0;
+                                break;
+                        }
+                        LCD_changed = (2 << (var << 1));
+                        refresh_values_p3();
+                        wait200ms();
+                        wait50ms();
+                    }//else if
+                    break;
+
+                // ########################################################## //
+                case 4://parametri hsw 1/2
+                    if (mode && !oldmode) {
+                        //cambio pagina
+                        DataEEWrite(soglia_sole,EE_ADDR_SOGLIA_SOLE);
+                        DataEEWrite(soglia_batteria,EE_ADDR_SOGLIA_BATTERIA);
+                        DataEEWrite(sec_refresh_batt_sole,EE_ADDR_SEC_BATT_SOLE);
+                        DataEEWrite(en_hlvd,EE_ADDR_EN_HLVD);
+
+                        currpage = (currpage + 1) % NUM_PAGINE;
+                        display_reverse = 1;
+                        var=0;
+                        refresh_display();
+                        sec_refresh_batt_sole=1;
+                        contaT2=1;
+                        wait50ms();
+                        }
+                    else if (set && !oldset) {
+                        //salvo in EEPROM
+                        switch(var){
+                            case AUTO_SOLE:
+                                DataEEWrite(soglia_sole,EE_ADDR_SOGLIA_SOLE);
+                                break;
+                            case AUTO_PILA:
+                                DataEEWrite(soglia_batteria,EE_ADDR_SOGLIA_BATTERIA);
+                                contaT2=1;
+                                break;
+                            case SEC_PILA_FOTORES:
+                                DataEEWrite(sec_refresh_batt_sole,EE_ADDR_SEC_BATT_SOLE);
+                                contaT2=1;
+                                break;
+                            case EN_HLVD:
+                                DataEEWrite(en_hlvd,EE_ADDR_EN_HLVD);
+                                break;
+                        }
+                        LCD_changed = (1 << (var << 1));//mettere 1 al posto di 2 se si parte dalla prima riga
+                        var = (var + 1) % NUM_PARAMETRI_4;
+                        //evidenzio la variabile in edit nel display
+                        display_reverse = (1 << (var << 1));
+                        LCD_changed = LCD_changed | (1 << (var << 1));
+                        wait50ms();
+                        }
+                    else if (up && !oldup){
+                        incremento=1;
+                        switch(var){
+                            case AUTO_SOLE:
+                                //abifotores      = 1			;
+                                //wait2ms(); //1,6ms
+                                sole            = 100      ;
+                                //wait2ms(); //1,6ms
+                                //abifotores      = 0			;
+                                soglia_sole     = sole                  ;
+                                break;
+                            case AUTO_PILA:
+                                //abipila         = 1                     ;
+                                //wait2ms(); //1,6ms
+                                pila            = 330	;
+                                //wait2ms(); //1,6ms
+                                //abipila         = 0                     ;
+                                soglia_batteria = pila                  ;
+                                break;
+                            case SEC_PILA_FOTORES:
+                                if (sec_refresh_batt_sole<600) sec_refresh_batt_sole++;
+                                break;
+                            case EN_HLVD:
+                                en_hlvd=TRUE;
+                                initHLVD();
+//                              _LVDMD = 0;
+//                              _LVDIE = 1;
+//                              HLVDCONbits.HLVDEN = 1;
+                                break;
+                        }
+                        refresh_values_p4();
+                        LCD_changed = (2 << (var << 1));
+                        wait200ms();
+                        wait50ms();
+                    }//else if
+                    else if (up && oldup){
+                        incremento++;
+                        if (incremento<10)
+                            aggiungi=1;
+                        else
+                            if(incremento<20)
+                                aggiungi=10;
+                            else
+                                if(incremento<30)
+                                    aggiungi=100;
+                                else
+                                    aggiungi=1000;
+                        switch (var){
+                            case SEC_PILA_FOTORES:
+                                if (sec_refresh_batt_sole<600-aggiungi)
+                                    sec_refresh_batt_sole+=aggiungi;
+                                else
+                                    sec_refresh_batt_sole=600;
+                                break;
+                        }//switch
+                        refresh_values_p4();
+                        LCD_changed = (2 << (var << 1));
+                        wait200ms();
+                        wait50ms();
+                    }//elseif
+                    else if (down && !olddown){
+                        incremento=1;
+                        switch(var){
+                            case AUTO_SOLE:
+                                abifotores      = 1			;
+                                wait2ms(); //1,6ms
+                                sole            = readADC(fotores)      ;
+                                wait2ms(); //1,6ms
+                                abifotores      = 0			;
+                                soglia_sole     = sole                  ;
+                                break;
+                            case AUTO_PILA:
+                                //abipila         = 1                     ;
+                                wait2ms(); //1,6ms
+                                pila            = readADC(batterysense)	;
+                                wait2ms(); //1,6ms
+                                //abipila         = 0                     ;
+                                soglia_batteria = pila                  ;
+                                break;
+                            case SEC_PILA_FOTORES:
+                                if (sec_refresh_batt_sole>1) sec_refresh_batt_sole--;
+                                break;
+                            case EN_HLVD:
+                                en_hlvd=FALSE;
+                                initHLVD();
+//                              _LVDMD = 1;
+//                              _LVDIE = 0;
+//                             HLVDCONbits.HLVDEN = 0;
+                                break;
+                        }
+                        refresh_values_p4();
+                        LCD_changed = (2 << (var << 1));
+                        wait50ms();
+                    }//else if
+                    else if (down && olddown){
+                        incremento++;
+                        if (incremento<10)
+                            aggiungi=1;
+                        else
+                            if(incremento<20)
+                                aggiungi=10;
+                            else
+                                if(incremento<30)
+                                    aggiungi=100;
+                                else
+                                    aggiungi=1000;
+                        switch (var){
+                            case SEC_PILA_FOTORES:
+                            if (sec_refresh_batt_sole>1+aggiungi)
+                                sec_refresh_batt_sole-=aggiungi;
+                            else
+                                sec_refresh_batt_sole=1;
+                            break;
+                        }//switch
+                        refresh_values_p4();
+                        LCD_changed = (2 << (var << 1));
+                        wait200ms();
+                        wait50ms();
+                    }
+                    break;
+
+                // ########################################################## //
+                case 5://parametri hsw 2/2
+                    if (mode && !oldmode) {
+                        //cambio pagina
+                        DataEEWrite(n_media_flusso,EE_ADDR_MEDIA);
+//                         DataEEWrite(reverse_main,EE_ADDR_REV_MAIN);
+//                         DataEEWrite(reverse_splash,EE_ADDR_REV_SPLASH);
+                        DataEEWrite(tune,EE_ADDR_CLK_TUNE);
+                        if(tune>=0)
+                            OSCTUNbits.TUN = tune;
+                        else
+                            OSCTUNbits.TUN = tune + 64;
+                        currpage = (currpage + 1) % NUM_PAGINE;
+                        display_reverse=0;
+                        var=0;
+                        refresh_display();
+                        wait50ms();
+                    }
+                    else if (set && !oldset) {
+                        switch(var)
+                        {
+                            case N_MEDIA:
+                                DataEEWrite(n_media_flusso,EE_ADDR_MEDIA);
+                                break;
+//                             case REVERSE_MAIN:
+//                                 DataEEWrite(reverse_main,EE_ADDR_REV_MAIN);
+//                                 break;
+//                             case REVERSE_SPLASH:
+//                                 DataEEWrite(reverse_splash,EE_ADDR_REV_SPLASH);
+//                                 break;
+                            case CLK_TUNE:
+                                DataEEWrite(tune,EE_ADDR_CLK_TUNE);
+                                if(tune>=0)
+                                    OSCTUNbits.TUN = tune;
+                                else
+                                    OSCTUNbits.TUN = tune + 64;
+                                break;
+                        }//switch
+                        LCD_changed = (1 << (var << 1));//mettere 1 al posto di 2 se si parte dalla prima riga
+                        var = (var + 1) % NUM_PARAMETRI_5;
+                        //evidenzio la variabile in edit nel display
+                        display_reverse = (1 << (var << 1));
+                        LCD_changed = LCD_changed | (1 << (var << 1));
+                        LCD_changed = LCD_changed | 32;
+                        wait200ms();
+                        wait50ms();
+                    }//elseif
+                    else if (up && !oldup){
+                        switch (var){
+                            case N_MEDIA:
+                                if(n_media_flusso<10)
+                                    n_media_flusso++;
+                                break;
+//                             case REVERSE_MAIN:
+//                                 reverse_main=TRUE;
+//                                 break;
+//                             case REVERSE_SPLASH:
+//                                 reverse_splash=TRUE;
+//                                 break;
+                            case CLK_TUNE:
+                                if (tune<31)
+                                    tune++;
+                                break;
+                        }//switch
+                        refresh_values_p5();
+                        LCD_changed = (2 << (var << 1)) | 32;
+                        wait200ms();
+                        wait50ms();
+                    }//else if
+                    else if (down && !olddown) {
+                        switch (var) {
+                            case N_MEDIA:
+                                if (n_media_flusso > 1)
+                                    n_media_flusso--;
+                                break;
+//                             case REVERSE_MAIN:
+//                                 reverse_main = FALSE;
+//                                 break;
+//                             case REVERSE_SPLASH:
+//                                 reverse_splash = FALSE;
+//                                 break;
+                            case CLK_TUNE:
+                                if(tune>-32)
+                                    tune--;
+                                break;
+                        }//switch
+                        refresh_values_p5();
+                        LCD_changed = (2 << (var << 1)) | 32;
+                        wait200ms();
+                        wait50ms();
+                    }//else if
+                    else
+                       LCD_changed = 32;
+                    break;
+
+                // ########################################################## //
+                case 6://test A/D
+                    if (mode && !oldmode) {
+                        //cambio pagina
+                        sec_refresh_batt_sole=DataEERead(EE_ADDR_SEC_BATT_SOLE);
+                        currpage = (currpage + 1) % NUM_PAGINE;
+                        display_reverse = 0;
+                        var=0;
+                        refresh_display();
+                        wait50ms();
+                    }
+                    else
+                        LCD_changed=0x2A;//righe 1,3,5
+                    break;
+
+                // ########################################################## //
+                case 7://test ingressi
+                    if (mode && !oldmode) {
+                        //cambio pagina
+                        currpage = (currpage + 1) % NUM_PAGINE;
+                        display_reverse = 1;
+                        var=0;
+                        refresh_display();
+                        wait50ms();
+                    }
+                    else
+                        LCD_changed=0x3F;//righe 1-6
+                    break;
+
+                // ########################################################## //
+                case 8://test uscite
+                    if (mode && !oldmode) {
+                        //cambio pagina
+                        currpage = (currpage + 1) % NUM_PAGINE;
+                        display_reverse = 0;
+                        var=0;
+                        refresh_display();
+                        wait50ms();
+                    }
+                    else if (set && !oldset) {
+                        //ciclo tra le variabili
+                        LCD_changed = (1 << (var ));//mettere 1 al posto di 2 se si parte dalla prima riga
+                        var = (var + 1) % NUM_PARAMETRI_8;
+                        //evidenzio la variabile in edit nel display
+                        display_reverse = (1 << (var ));
+                        LCD_changed = LCD_changed | (1 << (var ));
+                        wait50ms();
+                    }
+                    else if (up && !oldup){
+                        switch (var){
+//                          case AB_PILA:
+//                              abipila=1;
+//				break;
+                            case AB_REED:
+                                abicoperchio=1;
+                                break;
+                            case AB_FOTORES:
+                                abifotores=1;
+                                break;
+                        }//switch
+                        wait50ms();
+                    }//else if
+                    else if (down && !olddown){
+                        switch (var){
+//                          case AB_PILA:
+//                              abipila=0;
+//				break;
+                            case AB_REED:
+                                abicoperchio=0;
+                                break;
+                            case AB_FOTORES:
+                                abifotores=0;
+                                break;
+                            }//switch
+                        wait50ms();
+                    }//else if
+                    else
+                        LCD_changed = 0x0F; //righe 1-3
+                    break;
+
+                // ########################################################## //
+                case 9://conta impulsi sensore, tot litri vita strumento, secondi
+                    if (down && !olddown) {
+                        //cambio pagina
+                        currpage = 0;
+                        var = 0;
+                        if (reverse_main)
+                            display_reverse = 56;
+                        else
+                            display_reverse = 0;
+                        refresh_display();
+                        wait50ms();
+                    }
+                    else if (mode && !oldmode) {
+						//cambio pagina
+                        currpage = 4;
+						var = 0;
+                        display_reverse=1;
+                        refresh_display();
+						wait50ms();
+                    } else
+                        LCD_changed = 0xAA; //righe 1,3,5,7
+                    break;
+
+                default:
+                    break;
+
+            }//switch
+        }//If
+
+        if (refresh_LCD && (!chiuso || currpage==7)) {
+            refresh_LCD = FALSE;
+            retro_level();
+            switch (currpage) {
+                case 0:
+                    refresh_values_p0();
+                    break;
+                    //                case 4:
+                    //                    refresh_values_p4();
+                    //                    break;
+                case 5:
+                    refresh_values_p5();
+                    break;
+                case 6:
+                    refresh_values_p6();
+                    break;
+                case 7:
+                    refresh_values_p7();
+                    break;
+                case 8:
+                    refresh_values_p8();
+                case 9:
+                    refresh_values_p9();
+                default:
+                    break;
+            }
+            refresh_changed();
+
+        }
+
+        Nop();
+    }//main loop
+
+}//main
