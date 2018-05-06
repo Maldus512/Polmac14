@@ -32,8 +32,9 @@
 #define CHKSUM              17
 #define AB_STOP             21
 #define LCD_CONTRAST        22
+#define VUOTO               23
 
-#define PARAM_NUM           23
+#define PARAM_NUM           24
 
 
 typedef enum {

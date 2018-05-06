@@ -352,11 +352,8 @@ void initParameters() {
     paramStore[AB_STOP].inEeprom = TRUE;
     paramStore[AB_STOP].readOnly = FALSE;
     paramStore[AB_STOP].wCallEnable = FALSE;
-    //paramStore[AB_STOP].writeCallback = &c_abFotores;
     paramStore[AB_STOP].upCallEnable = FALSE;
-    //paramStore[AB_STOP].upCallback = &c_abFotores;
     paramStore[AB_STOP].downCallEnable = FALSE;
-    //paramStore[AB_STOP].downCallback = &c_abFotores;
     
     paramStore[LCD_CONTRAST].name = "Lcd contrast";
     paramStore[LCD_CONTRAST].size = UINT8;
@@ -370,6 +367,18 @@ void initParameters() {
     paramStore[LCD_CONTRAST].writeCallback = &c_lcdContrast;
     paramStore[LCD_CONTRAST].upCallEnable = FALSE;
     paramStore[LCD_CONTRAST].downCallEnable = FALSE;
+    
+    paramStore[VUOTO].name = "";
+    paramStore[VUOTO].size = UINT8;
+    paramStore[VUOTO].defaultValue.uc8 = 0;
+    paramStore[VUOTO].enRollOver = FALSE;
+    paramStore[VUOTO].minValue.uc8 = 0;
+    paramStore[VUOTO].maxValue.uc8 = 1;
+    paramStore[VUOTO].inEeprom = FALSE;
+    paramStore[VUOTO].readOnly = TRUE;
+    paramStore[VUOTO].wCallEnable = FALSE;
+    paramStore[VUOTO].upCallEnable = FALSE;
+    paramStore[VUOTO].downCallEnable = FALSE;
 
 
     //altri

@@ -124,11 +124,12 @@ void pageFactoryInit()
     adminPages[5].nextPage = &adminPages[6];
     adminPages[5].prevPage = &adminPages[5];
     adminPages[5].displayFunction = &refresh_values_p8;
-    adminPages[5].paramNumber = 4;
+    adminPages[5].paramNumber = 5;
     adminPages[5].params[0] = &paramStore[AB_REED];
     adminPages[5].params[1] = &paramStore[AB_FOTORES];
-    adminPages[5].params[2] = &paramStore[AB_REED];
-    adminPages[5].params[3] = &paramStore[AB_FOTORES];
+    adminPages[5].params[2] = &paramStore[VUOTO];
+    adminPages[5].params[3] = &paramStore[AB_STOP];
+    adminPages[5].params[4] = &paramStore[LCD_CONTRAST];
 
     adminPages[6].name = "CONTATORE";
     adminPages[6].key = 9;

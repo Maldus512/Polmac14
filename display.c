@@ -484,10 +484,13 @@ void refresh_values_p8(void)
     }
     
     if (paramStore[AB_STOP].value.uc8)
-        putstring(adminPages[5].textBuffer, "SI", 1, 2);
+        putstring(adminPages[5].textBuffer, "AB STOP       SI", 1, 3);
     else
-        putstring(adminPages[5].textBuffer, "NO", 1, 2);
-    putvarInt(adminPages[5].textBuffer, paramStore[LCD_CONTRAST].value, paramStore[LCD_CONTRAST].size, 1, 3);
+        putstring(adminPages[5].textBuffer, "AB STOP       NO", 1, 3);
+    //putvarInt(adminPages[5].textBuffer, paramStore[LCD_CONTRAST].value, paramStore[LCD_CONTRAST].size, 1, 4);
+    char stringa[16];
+    sprintf(stringa, "LCD CONTRAST  %u", paramStore[LCD_CONTRAST].value.uc8);
+    putstring(adminPages[5].textBuffer, stringa, 0, 4);
 }
 
 void refresh_values_p9(void) {
