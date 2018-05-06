@@ -28,7 +28,7 @@ volatile int contaT1;
 extern unsigned char gotosleep;
 extern volatile unsigned long long cont;
 extern char chiuso; //TODO sostituire con force init
-extern tParameter paramStore[21];
+extern tParameter paramStore[PARAM_NUM];
 
 void initSleep() {
     disabilitaIntPulsanti();

@@ -29,8 +29,11 @@
 #define AB_REED             19
 #define AB_FOTORES          20
 #define COUNTER             10
-
 #define CHKSUM              17
+#define AB_STOP             21
+#define LCD_CONTRAST        22
+
+#define PARAM_NUM           23
 
 
 typedef enum {

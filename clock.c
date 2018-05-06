@@ -3,7 +3,7 @@
 #include "parameterStore.h"
 
 
-extern tParameter paramStore[21];
+extern tParameter paramStore[PARAM_NUM];
 
 void initClock() {
 #if MHZ==1

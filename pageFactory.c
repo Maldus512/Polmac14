@@ -10,7 +10,7 @@ extern unsigned char LCD_changed;
 tPageInfo userPages[4];
 tPageInfo adminPages[7];
 tPageInfo *activePage;
-extern tParameter paramStore[21];
+extern tParameter paramStore[PARAM_NUM];
 extern unsigned char nextrow;
 
 
@@ -124,9 +124,11 @@ void pageFactoryInit()
     adminPages[5].nextPage = &adminPages[6];
     adminPages[5].prevPage = &adminPages[5];
     adminPages[5].displayFunction = &refresh_values_p8;
-    adminPages[5].paramNumber = 2;
+    adminPages[5].paramNumber = 4;
     adminPages[5].params[0] = &paramStore[AB_REED];
     adminPages[5].params[1] = &paramStore[AB_FOTORES];
+    adminPages[5].params[2] = &paramStore[AB_REED];
+    adminPages[5].params[3] = &paramStore[AB_FOTORES];
 
     adminPages[6].name = "CONTATORE";
     adminPages[6].key = 9;

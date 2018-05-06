@@ -6,7 +6,7 @@
 
 
 
-tParameter paramStore[21];
+tParameter paramStore[PARAM_NUM];
 unsigned char firstBoot;
 unsigned char init = TRUE;
 
@@ -342,6 +342,34 @@ void initParameters() {
     paramStore[AB_FOTORES].upCallback = &c_abFotores;
     paramStore[AB_FOTORES].downCallEnable = TRUE;
     paramStore[AB_FOTORES].downCallback = &c_abFotores;
+    
+    paramStore[AB_STOP].name = "Abi Stop";
+    paramStore[AB_STOP].size = UINT8;
+    paramStore[AB_STOP].defaultValue.uc8 = 0;
+    paramStore[AB_STOP].enRollOver = FALSE;
+    paramStore[AB_STOP].minValue.uc8 = 0;
+    paramStore[AB_STOP].maxValue.uc8 = 1;
+    paramStore[AB_STOP].inEeprom = TRUE;
+    paramStore[AB_STOP].readOnly = FALSE;
+    paramStore[AB_STOP].wCallEnable = FALSE;
+    //paramStore[AB_STOP].writeCallback = &c_abFotores;
+    paramStore[AB_STOP].upCallEnable = FALSE;
+    //paramStore[AB_STOP].upCallback = &c_abFotores;
+    paramStore[AB_STOP].downCallEnable = FALSE;
+    //paramStore[AB_STOP].downCallback = &c_abFotores;
+    
+    paramStore[LCD_CONTRAST].name = "Lcd contrast";
+    paramStore[LCD_CONTRAST].size = UINT8;
+    paramStore[LCD_CONTRAST].defaultValue.uc8 = 24;
+    paramStore[LCD_CONTRAST].enRollOver = FALSE;
+    paramStore[LCD_CONTRAST].minValue.uc8 = 1;
+    paramStore[LCD_CONTRAST].maxValue.uc8 = 63;
+    paramStore[LCD_CONTRAST].inEeprom = TRUE;
+    paramStore[LCD_CONTRAST].readOnly = FALSE;
+    paramStore[LCD_CONTRAST].wCallEnable = TRUE;
+    paramStore[LCD_CONTRAST].writeCallback = &c_lcdContrast;
+    paramStore[LCD_CONTRAST].upCallEnable = FALSE;
+    paramStore[LCD_CONTRAST].downCallEnable = FALSE;
 
 
     //altri
@@ -376,7 +404,7 @@ void initParameters() {
     dataEEFlags.val = 0;
     int i;
     unsigned int indirizzo = 0;
-    for (i = 0; i < 21; i++) {
+    for (i = 0; i < PARAM_NUM; i++) {
         paramStore[i].key = i;
         if (paramStore[i].inEeprom) {
             switch (paramStore[i].size) {
@@ -404,7 +432,7 @@ void initParameters() {
     else
         firstBoot = TRUE;
 
-    for (i = 0; i < 21; i++) {
+    for (i = 0; i < PARAM_NUM; i++) {
         if (firstBoot) {
             paramStore[i].value = paramStore[i].defaultValue;
             writeParam(i);

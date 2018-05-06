@@ -21,6 +21,7 @@ void c_pila_up();
 void c_pila_down();
 void c_clock_tune();
 void c_low_v_save();
+void c_lcdContrast();
 
 #endif	/* CALLBACKS_H */
 

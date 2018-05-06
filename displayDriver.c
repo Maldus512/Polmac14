@@ -31,7 +31,7 @@ unsigned char display_reverse = 0; // flag display in reverse se 1, 1 bit per ri
 unsigned char LCD_changed = 0; // 1 bit per riga
 unsigned char nextrow;
 extern tPageInfo *activePage;
-extern tParameter paramStore[21];
+extern tParameter paramStore[PARAM_NUM];
 
 _INLINE void pushData() {
     LCD_COMM_E = 1;
@@ -93,7 +93,7 @@ void init_LCD(void) {
     LCD_DATA = 0x81;    // electonic volume     81
     pushData();
 
-    LCD_DATA = 0x18;    // CONTRAST             20 ****
+    LCD_DATA = paramStore[LCD_CONTRAST].value.uc8;    // CONTRAST             20 ****
     pushData();
 
     LCD_DATA = 0x2F;    // power control        2F

@@ -16,7 +16,7 @@
 extern tPageInfo *activePage;
 extern tPageInfo userPages[3];
 extern tPageInfo adminPages[7];
-extern tParameter paramStore[21];
+extern tParameter paramStore[PARAM_NUM];
 extern unsigned char display_reverse; // flag display in reverse se 1, 1 bit per riga
 extern unsigned char LCD_changed;
 
@@ -204,6 +204,8 @@ void initPagine(void)
     //putstring(adminPages[5].textBuffer, "AB PILA", 0, 0);
     putstring(adminPages[5].textBuffer, "AB REED", 0, 0);
     putstring(adminPages[5].textBuffer, "AB FOTORES", 0, 1);
+    putstring(adminPages[5].textBuffer, "AB STOP", 0, 3);
+    putstring(adminPages[5].textBuffer, "LCD CONTRAST", 0, 4);
     putstring(adminPages[6].textBuffer, "Impulsi", 0, 0);
     putstring(adminPages[6].textBuffer, "Tot Litri", 0, 2);
     putstring(adminPages[6].textBuffer, "Secondi", 0, 4);
@@ -246,7 +248,7 @@ void refresh_values_p0(void)
             break;
     }
     
-    if (pause)
+    if (pause && paramStore[AB_STOP].value.uc8)
     {
         putstring(userPages[0].textBuffer,"---=# STOP #=---",0,7);
         display_reverse = display_reverse | 0x80;
@@ -480,6 +482,12 @@ void refresh_values_p8(void)
     {
         putstring(adminPages[5].textBuffer, "AB FOTORES     0", 0, 1);
     }
+    
+    if (paramStore[AB_STOP].value.uc8)
+        putstring(adminPages[5].textBuffer, "SI", 1, 2);
+    else
+        putstring(adminPages[5].textBuffer, "NO", 1, 2);
+    putvarInt(adminPages[5].textBuffer, paramStore[LCD_CONTRAST].value, paramStore[LCD_CONTRAST].size, 1, 3);
 }
 
 void refresh_values_p9(void) {

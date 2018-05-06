@@ -8,7 +8,7 @@
 extern char en_hlvd;
 extern volatile unsigned long long cont;
 volatile unsigned int a,b;
-extern tParameter paramStore[21];
+extern tParameter paramStore[PARAM_NUM];
 
 
 

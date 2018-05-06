@@ -25,7 +25,7 @@ volatile float flussoF = 0;
 unsigned long long oldimpulsi = 1000;
 
 
-extern tParameter paramStore[21];
+extern tParameter paramStore[PARAM_NUM];
 
 void initCont(void) {
     //Timer3 : contatore di impulsi

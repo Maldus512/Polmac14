@@ -30,6 +30,12 @@
 /*                                                                            */
 /******************************************************************************/
 /*                                                                            */
+/*  rev.:   14.0 del 06/05/2018                                               */
+/*                                                                            */
+/*      - aggiunti parametri STOP CONTEGGIO e contrasto LCD                   */
+/*                                                                            */
+/*----------------------------------------------------------------------------*/
+/*                                                                            */
 /*  rev.:   13.0 del 08/02/2018                                               */
 /*                                                                            */
 /*      - aggiunta funzionalita' STOP CONTEGGIO con [RESET]+[-] in TOGGLE     */
@@ -185,7 +191,7 @@
 // <editor-fold defaultstate="collapsed" desc="variables">
 
 //parametri utente e valori di default
-extern tParameter paramStore[21];
+extern tParameter paramStore[PARAM_NUM];
 
 //variabili di stato
 extern tPageInfo *activePage;

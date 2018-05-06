@@ -9,7 +9,7 @@
 #include "clock.h"
 
 
-extern tParameter paramStore[21];
+extern tParameter paramStore[PARAM_NUM];
 
 extern unsigned int pila;
 extern char oldlowbatt;
@@ -109,4 +109,9 @@ void c_low_v_save()
         writeParam(COUNTER);
     }
     initHLVD();
+}
+
+void c_lcdContrast()
+{
+    init_LCD();
 }

@@ -19,7 +19,7 @@ extern volatile unsigned long long secondi_set; // per contare i 3 secondi per a
 extern unsigned int sole; // livello da ADC
 
 extern tPageInfo *activePage;
-extern tParameter paramStore[21];
+extern tParameter paramStore[PARAM_NUM];
 
 //reset timeout spegnimento retro
 

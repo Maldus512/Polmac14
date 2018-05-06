@@ -18,7 +18,7 @@ extern volatile unsigned long long secondi, secondi_set;
 extern unsigned char currpage;
 extern unsigned char target_led_level;
 
-extern tParameter paramStore[21];
+extern tParameter paramStore[PARAM_NUM];
 
 volatile unsigned char planner = 0;
 
