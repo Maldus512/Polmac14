@@ -21,7 +21,7 @@ typedef struct pageInfo {
     unsigned char displayReverse;
 
     unsigned char textBuffer[8][16];
-    tParameter* params[4];
+    tParameter* params[8];
 
 } tPageInfo;
 

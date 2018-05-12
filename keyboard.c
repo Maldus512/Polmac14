@@ -147,7 +147,10 @@ void leggiPulsanti()
                 increment(activePage->params[activePage->selectedVar]->key, amount);
                 debounce = 25; //TODO o 5 se bool?
                 (*activePage->displayFunction)();
-                LCD_changed = LCD_changed | (2 << (activePage->selectedVar << 1));
+                if (activePage->key == 8) // test uscite - una riga per parametro
+                    LCD_changed = LCD_changed | (1 << (activePage->selectedVar << 0));
+                else
+                    LCD_changed = LCD_changed | (2 << (activePage->selectedVar << 1));
             }
         }
         else if (down && !olddown && !mode && !set && !up)
@@ -163,7 +166,10 @@ void leggiPulsanti()
                 decrement(activePage->params[activePage->selectedVar]->key, amount);
                 debounce = 25; //TODO o 5 se bool
                 (*activePage->displayFunction)();
-                LCD_changed = LCD_changed | (2 << (activePage->selectedVar << 1));
+                if (activePage->key == 8) // test uscite - una riga per parametro
+                    LCD_changed = LCD_changed | (1 << (activePage->selectedVar << 0));
+                else
+                    LCD_changed = LCD_changed | (2 << (activePage->selectedVar << 1));
             }
         }
         else if (up && oldup && !mode && !set && !down)
@@ -196,7 +202,10 @@ void leggiPulsanti()
                     increment(activePage->params[activePage->selectedVar]->key, amount);
                     debounce = 25;
                     (*activePage->displayFunction)();
-                    LCD_changed = LCD_changed | (2 << (activePage->selectedVar << 1));
+                    if (activePage->key == 8) // test uscite - una riga per parametro
+                        LCD_changed = LCD_changed | (1 << (activePage->selectedVar << 0));
+                    else
+                        LCD_changed = LCD_changed | (2 << (activePage->selectedVar << 1));
                 }
             }
         }
@@ -229,7 +238,10 @@ void leggiPulsanti()
                     decrement(activePage->params[activePage->selectedVar]->key, amount);
                     debounce = 25;
                     (*activePage->displayFunction)();
-                    LCD_changed = LCD_changed | (2 << (activePage->selectedVar << 1));
+                    if (activePage->key == 8) // test uscite - una riga per parametro
+                        LCD_changed = LCD_changed | (1 << (activePage->selectedVar << 0));
+                    else
+                        LCD_changed = LCD_changed | (2 << (activePage->selectedVar << 1));
                 }
             }
             if (activePage->key == 9)

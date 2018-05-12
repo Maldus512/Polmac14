@@ -232,7 +232,7 @@ void cambioVariabile()
         writeParam(activePage->params[activePage->selectedVar]->key);
         unsigned char step = 1;
 
-        if (activePage->key == 8)
+        if (activePage->key == 8) // test uscite - una riga per parametro
             step = 0;
 
         LCD_changed = LCD_changed | (1 << (activePage->selectedVar << step));
