@@ -75,6 +75,7 @@ void writeParam(unsigned int index);
 void readParam(unsigned int index);
 void increment(unsigned int index,varInt amount);
 void decrement(unsigned int index,varInt amount);
+void writeCounterWithoutPack(void);
 
 #endif	/* EEPROMSTORE_H */
 

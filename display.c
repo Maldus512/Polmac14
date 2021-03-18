@@ -1,7 +1,7 @@
 #include "HardwareProfile.h"
 #include <string.h>
 #include <stdio.h>
-#include "Display.h"
+#include "display.h"
 #include "peripherals.h"
 #include "timers.h"
 #include "main.h"

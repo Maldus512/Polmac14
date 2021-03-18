@@ -135,6 +135,7 @@
 #include "parameterStore.h"
 #include "pageFactory.h"
 #include "flowMeter.h"
+#include "wdt.h"
 
 
 // <editor-fold defaultstate="collapsed" desc="configuration bits">
@@ -175,8 +176,8 @@
 #pragma config IESO = OFF               // Internal External Switchover (Disabled)
 
 // CONFIG1
-#pragma config WDTPS = PS32768          // Watchdog Timer Postscaler Select (1:32,768)
-#pragma config FWPSA = PR128            // WDT Prescaler Ratio Select (1:128)
+#pragma config WDTPS = PS4096           // Watchdog Timer Postscaler Select (1:4,096)
+#pragma config FWPSA = PR32             // WDT Prescaler Ratio Select (1:32)
 #pragma config FWDTEN = WDT_ACT         // Watchdog Timer Enable (WDT enabled only while device active and disabled in Sleep)
 #pragma config WINDIS = OFF             // Windowed WDT Disable (Standard Watchdog Timer)
 #pragma config ICS = PGx3               // Emulator Pin Placement Select bits (Emulator functions are shared with PGEC3/PGED3)
@@ -251,6 +252,7 @@ static void InitializeSystem(void) {
     LCDshutdown();
     //spegni la retroilluminazione
     PWMledLCD_OFF_quick();
+    ClrWdt();
 
 }
 
@@ -266,7 +268,7 @@ int main(void)
 
     while (TRUE)
     {
-        ClrWdt(); // è disabilitato ???
+        wdt_set_flag(WDT_FLAG_MAIN);
         
         if (RCONbits.DPSLP != 0 || RCONbits.SLEEP != 0)  // mi sto svegliando
         {

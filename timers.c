@@ -7,6 +7,7 @@
 #include <limits.h>
 #include "sleep.h"
 #include "parameterStore.h"
+#include "wdt.h"
 
 
 volatile int contaT2;
@@ -89,6 +90,7 @@ void initTimers(void) {
 void _ISR_NO_PSV _T2Interrupt(void) {
     //alza i flag per indicare se è necessario rinfrescare LCD e livello batteria
     _T2IF = 0;
+    wdt_set_flag(WDT_FLAG_TIMER1);
 
     //refresh_LCD = TRUE;
 
@@ -105,6 +107,7 @@ void _ISR_NO_PSV _T2Interrupt(void) {
 void _ISR_NO_PSV _T4Interrupt(void) {
     //10 ms clock
     _T4IF = 0;
+    wdt_set_flag(WDT_FLAG_TIMER2);
 
     refresh_keys = TRUE;
     

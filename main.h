@@ -1,6 +1,11 @@
+#ifndef MAIN_H_INCLUDED
+#define MAIN_H_INCLUDED
+
 /******************************************************************************/
 /*      COSTANTI			                                      */
 /******************************************************************************/
+
+#include <xc.h>
 
 #define _ISR_PSV        __attribute__((interrupt, auto_psv))
 #define _ISR_NO_PSV 	__attribute__((interrupt, no_auto_psv))
@@ -18,3 +23,5 @@
 
 
 void save (void);
+
+#endif

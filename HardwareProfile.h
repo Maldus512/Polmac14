@@ -12,7 +12,7 @@
 #include <libpic30.h>
 
 
-#define VERSIONE "v14.0 12/05/2018"
+#define VERSIONE "v14.1 15/03/2021"
 
 
 //#define MHZ                     1

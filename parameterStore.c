@@ -1,9 +1,12 @@
 #include "main.h"
-#include "DEE Emulation 16-bit\DEE Emulation 16-bit.h"
+#include "DEE Emulation 16-bit/DEE Emulation 16-bit.h"
 #include "parameterStore.h"
 #include "callbacks.h"
 #include <limits.h>
 
+
+static void pack_if_crowded(void);
+static int checkLimits(unsigned int index);
 
 
 tParameter paramStore[PARAM_NUM];
@@ -55,7 +58,8 @@ void writeParam(unsigned int index) {
             }
             break;
     }
-
+    
+    pack_if_crowded();
 }
 
 void readParam(unsigned int index) {
@@ -394,6 +398,8 @@ void initParameters() {
     paramStore[COUNTER].wCallEnable = FALSE;
     paramStore[COUNTER].upCallEnable = FALSE;
     paramStore[COUNTER].downCallEnable = FALSE;
+    // Il contatore deve essere salvato nella speciale bank 1 (e.g. indirizzo > 255)
+    paramStore[COUNTER].address = 256;
 
 
     paramStore[CHKSUM].name = "Check EEProm";
@@ -408,14 +414,24 @@ void initParameters() {
     paramStore[CHKSUM].upCallEnable = FALSE;
     paramStore[CHKSUM].downCallEnable = FALSE;
 
-
-    DataEEInit();
+    int attempts = 0, init_failed = 0;
+    unsigned char res = 0;
+    do {
+        res = DataEEInit();
+    } while (res != 0 && attempts++ < 3);
+    
+    init_failed = res != 0;
+    
+    if (!init_failed)
+        pack_if_crowded();
+    
+    
     dataEEFlags.val = 0;
     int i;
     unsigned int indirizzo = 0;
     for (i = 0; i < PARAM_NUM; i++) {
         paramStore[i].key = i;
-        if (paramStore[i].inEeprom) {
+        if (paramStore[i].inEeprom && i != COUNTER) {
             switch (paramStore[i].size) {
                 case UINT8:
                     paramStore[i].address = indirizzo + 1;
@@ -434,9 +450,9 @@ void initParameters() {
             indirizzo += 2;
         }
     }
-
+    
     readParam(17);
-    if (paramStore[17].value.ui16 == 12345)
+    if (!init_failed && paramStore[17].value.ui16 == 12345)
         firstBoot = FALSE;
     else
         firstBoot = TRUE;
@@ -447,9 +463,10 @@ void initParameters() {
             writeParam(i);
         } else {
             readParam(i);
+            checkLimits(i);
         }
     }
-
+    
     init = FALSE;
 }
 
@@ -561,3 +578,56 @@ void decrement(unsigned int index, varInt amount) {
     
 }
 
+
+void writeCounterWithoutPack(void) {
+    unsigned int a, b;
+    a = (unsigned int) (paramStore[COUNTER].value.ui32 >> 16);//high byte
+    b = (unsigned int) (paramStore[COUNTER].value.ui32 & 0x0000FFFF);//low byte
+    DataEEWrite(a, paramStore[COUNTER].address);
+    DataEEWrite(b, paramStore[COUNTER].address + 2);
+    paramStore[COUNTER].oldvalue.ui32 = paramStore[COUNTER].value.ui32;
+}
+
+
+static int checkLimits(unsigned int index) {
+    switch (paramStore[index].size) {
+        case UINT8:
+            if (paramStore[index].value.uc8 > paramStore[index].maxValue.uc8 || 
+                    paramStore[index].value.uc8 < paramStore[index].minValue.uc8) {
+                paramStore[index].value.uc8 = paramStore[index].defaultValue.uc8;
+                return 1;
+            }
+            break;
+        case UINT16:
+            if (paramStore[index].value.ui16 > paramStore[index].maxValue.ui16 || 
+                    paramStore[index].value.ui16 < paramStore[index].minValue.ui16) {
+                paramStore[index].value.ui16 = paramStore[index].defaultValue.ui16;
+                return 1;
+            }
+            break;
+        case UINT32:
+            if (paramStore[index].value.ui32 > paramStore[index].maxValue.ui32 || 
+                    paramStore[index].value.ui32 < paramStore[index].minValue.ui32) {
+                paramStore[index].value.ui32 = paramStore[index].defaultValue.ui32;
+                return 1;
+            }
+            break;
+        case SINT16:
+            if (paramStore[index].value.si16 > paramStore[index].maxValue.si16 || 
+                    paramStore[index].value.si16 < paramStore[index].minValue.si16) {
+                paramStore[index].value.si16 = paramStore[index].defaultValue.si16;
+                return 1;
+            }
+            break;
+    }
+    
+    return 0;
+}
+
+
+static void pack_if_crowded(void) {
+    unsigned int nextLoc = GetNextAvailCount(1);
+    //Pack if page is (almost) full
+    if ((nextLoc + 8) >= ((NUMBER_OF_INSTRUCTIONS_IN_PAGE) * 2))
+        PackEE(1);
+}

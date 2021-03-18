@@ -59,6 +59,11 @@ void initFlowMeter() {
             // 10000 litri in un m3, 60 min in 1h
             magic = 144000.0 / (float) paramStore[IMPULSI].value.ui16;
             break;
+        default:    // Il default e' comunque metri cubi; non dovrebbe succedere
+            // 10000 litri in un m3, 60 min in 1h
+            magic = 144000.0 / (float) paramStore[IMPULSI].value.ui16;
+            break;
+            
     }
     
     oldimpulsi = paramStore[IMPULSI].value.ui16;
@@ -142,6 +147,10 @@ _INLINE void calculateTotals() {
             litriparz = (unsigned long long) (2642 * parzcont / paramStore[IMPULSI].value.ui16); //ml passati
             break;
         case METRICUBI:
+            litritot = (unsigned long long) (10 * cont / paramStore[IMPULSI].value.ui16); //ml passati
+            litriparz = (unsigned long long) (10 * parzcont / paramStore[IMPULSI].value.ui16); //ml passati
+            break;
+        default:    // Il default e' comunque metri cubi; non dovrebbe succedere
             litritot = (unsigned long long) (10 * cont / paramStore[IMPULSI].value.ui16); //ml passati
             litriparz = (unsigned long long) (10 * parzcont / paramStore[IMPULSI].value.ui16); //ml passati
             break;

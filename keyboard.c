@@ -8,6 +8,7 @@
 #include "peripherals.h"
 #include "sleep.h"
 #include "pageFactory.h"
+#include "wdt.h"
 
 
 char mode = FALSE; // pulsante in alto a sinistra
@@ -86,6 +87,7 @@ void gestioneCoperchio()
 
             for (i = 0; i < 10; i++)
             {
+                wdt_set_flag(WDT_FLAG_MAIN); // Attiva WDT per evitare un reset
                 delay_ms(400);
                 if (retro_level())
                     ; //break;

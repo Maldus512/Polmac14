@@ -83,6 +83,7 @@ void _ISR_NO_PSV _T1Interrupt(void) {
 }
 
 void wakeUp() {
+    ClrWdt();
     // risveglio da sleep
     RCONbits.DPSLP = 0;
     RCONbits.SLEEP = 0;
@@ -116,7 +117,7 @@ void goToSleep() {
     //    asm("nop");
     //    asm("bset DSCON, #15");
     //    asm("pwrsav #0");
-    
+
     wakeUp();
 }
 

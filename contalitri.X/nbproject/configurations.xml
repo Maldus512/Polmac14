@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configurationDescriptor version="62">
+<configurationDescriptor version="65">
   <logicalFolder name="root" displayName="root" projectFiles="true">
     <logicalFolder name="HeaderFiles"
                    displayName="Header Files"
@@ -32,6 +32,7 @@
       <itemPath>../clock.h</itemPath>
       <itemPath>../keyboard.h</itemPath>
       <itemPath>../parameterStore.h</itemPath>
+      <itemPath>../wdt.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LinkerScript"
                    displayName="Linker Files"
@@ -57,6 +58,8 @@
       <itemPath>../clock.c</itemPath>
       <itemPath>../keyboard.c</itemPath>
       <itemPath>../parameterStore.c</itemPath>
+      <itemPath>../wdt.c</itemPath>
+      <itemPath>../traps.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -75,11 +78,14 @@
         <targetDevice>PIC24FJ128GA306</targetDevice>
         <targetHeader></targetHeader>
         <targetPluginBoard></targetPluginBoard>
-        <platformTool>PICkit3PlatformTool</platformTool>
+        <platformTool>ICD3PlatformTool</platformTool>
         <languageToolchain>XC16</languageToolchain>
-        <languageToolchainVersion>1.33</languageToolchainVersion>
-        <platform>3</platform>
+        <languageToolchainVersion>1.36</languageToolchainVersion>
+        <platform>2</platform>
       </toolsSet>
+      <packs>
+        <pack name="PIC24F-GA-GB_DFP" vendor="Microchip" version="1.1.74"/>
+      </packs>
       <compileType>
         <linkerTool>
           <linkerLibItems>
@@ -167,6 +173,9 @@
         <property key="relax" value="false"/>
         <property key="warning-level" value="emit-warnings"/>
       </C30-AS>
+      <C30-CO>
+        <property key="coverage-enable" value=""/>
+      </C30-CO>
       <C30-LD>
         <property key="additional-options-use-response-files" value="false"/>
         <property key="boot-eeprom" value="no_eeprom"/>
@@ -268,6 +277,7 @@
         <property key="UART 3" value="true"/>
         <property key="UART 4" value="true"/>
         <property key="debugoptions.useswbreakpoints" value="false"/>
+        <property key="firmware.download.all" value="false"/>
         <property key="hwtoolclock.frcindebug" value="false"/>
         <property key="memories.aux" value="false"/>
         <property key="memories.bootflash" value="false"/>

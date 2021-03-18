@@ -36,8 +36,7 @@ void _ISR_NO_PSV _LVDInterrupt(void) {
     IFS4bits.LVDIF = 0;
     PWMledLCD_OFF_quick();
     paramStore[COUNTER].value.ui32 = cont;
-    paramStore[COUNTER].oldvalue.ui32 = cont + 1;//forza scrittura sempre
-    writeParam(COUNTER);
+    writeCounterWithoutPack();
     LCDshutdown();
     //TODO reset mcu
 }

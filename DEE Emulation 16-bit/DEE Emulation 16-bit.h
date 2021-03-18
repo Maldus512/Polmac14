@@ -45,7 +45,7 @@
 #define DATA_EE_BANKS       2
 #define DATA_EE_SIZE        255
 #define DATA_EE_TOTAL_SIZE  (DATA_EE_BANKS * DATA_EE_SIZE)
-#define NUM_DATA_EE_PAGES   3
+#define NUM_DATA_EE_PAGES   12
 #if defined(__dsPIC33E__) || defined(__PIC24E__)
 #define ERASE               0x4003
 #define PROGRAM_ROW         0x4002
